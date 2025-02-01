@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <fcntl.h>
 
 /* Misc manifest constants */
 #define MAXLINE    1024   /* max line size */
@@ -101,6 +102,64 @@ int main(int argc, char **argv)
 */
 void eval(char *cmdline) 
 {
+	char *argv[MAXARGS];
+	int cmds[MAXARGS];
+	int stdin_redir[MAXARGS];
+	int stdout_redir[MAXARGS];
+	char *newenviron[] = { NULL };
+	int i = 0; 
+	int child_status;
+
+	parseline(cmdline, argv);
+
+	int numcommands = parseargs(argv, cmds, stdin_redir, stdout_redir);
+	int pids[numcommands];
+	int pipefds[numcommands][2];
+	if (builtin_cmd(argv) == 0) {
+		for(i = 0; i < numcommands; i++) {
+			if (i < numcommands - 1) {
+				if(pipe(pipefds[i]) < 0) {
+					fprintf(stderr, "Could not create pipe");
+					exit(1);
+				}
+			}
+			if ((pids[i] = fork()) == 0) {
+				if (stdin_redir[i] != -1) {
+					int fd = open(argv[stdin_redir[i]], O_RDONLY);
+					dup2(fd, STDIN_FILENO);
+					close(fd);
+				}
+				if (stdout_redir[i] != -1) {
+					int fd = open(argv[stdout_redir[i]], O_WRONLY | O_CREAT | O_TRUNC, 0600);
+					dup2(fd, STDOUT_FILENO);
+					close(fd);
+				}
+				if (i < numcommands - 1) {
+					close(pipefds[i][0]);
+					dup2(pipefds[i][1], STDOUT_FILENO);
+					close(pipefds[i][1]);
+				}
+				if (i > 0) {
+					close(pipefds[i-1][1]);
+					dup2(pipefds[i-1][0], STDIN_FILENO);
+					close(pipefds[i-1][0]);
+				}
+				if (execve(argv[cmds[i]], &argv[cmds[i]], newenviron) < 0) {
+					printf("%s: Command not found.\n", argv[cmds[i]]);
+					exit(1);
+				} 
+				exit(0);
+			}
+			setpgid(pids[i], pids[0]);
+			if (i > 0) {
+				close(pipefds[i-1][0]);
+				close(pipefds[i-1][1]);
+			}
+		}
+	}
+	for (i = numcommands-1; i >= 0; i--) {
+		waitpid(pids[i], &child_status, 0);
+	}
 	return;
 }
 
@@ -228,6 +287,9 @@ int parseline(const char *cmdline, char **argv)
  */
 int builtin_cmd(char **argv) 
 {
+	if (strcmp(argv[0], "quit") == 0) {
+		exit(0);
+	}
 	return 0;     /* not a builtin command */
 }
 
