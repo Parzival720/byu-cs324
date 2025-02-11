@@ -11,12 +11,26 @@
 int foo;
 int block;
 
+/*
+Handler for SIGHUP and SIGINT
+Prints the following:
+1
+2
+*/
 void sig_handler1(int signum) {
 	printf("1\n"); fflush(stdout);
 	sleep(4);
 	printf("2\n"); fflush(stdout);
 }
 
+/*
+Handler for SIGQUIT
+Prints the following:
+8
+1
+2
+9
+*/
 void sig_handler2(int signum) {
 	printf("8\n"); fflush(stdout);
 	kill(getpid(), SIGINT);
@@ -24,16 +38,29 @@ void sig_handler2(int signum) {
 	printf("9\n"); fflush(stdout);
 }
 
+/*
+Handler for SIGTERM
+Prints the following:
+{foo}
+*/
 void sig_handler3(int signum) {
 	printf("%d\n", foo); fflush(stdout);
 }
 
+/*
+Handler for 30
+If foo is positive, sets foo to 6
+*/
 void sig_handler4(int signum) {
 	if (foo > 0) {
 		foo = 6;
 	}
 }
 
+/*
+Handler for 10
+Creates a child and then terminates it with an exit status of 7
+*/
 void sig_handler5(int signum) {
 	foo = fork();
 	if (foo == 0) {
@@ -41,6 +68,10 @@ void sig_handler5(int signum) {
 	}
 }
 
+/*
+Handler for 16
+Checks to see if a child process has exited. If none has, prints errno
+*/
 void sig_handler6(int signum) {
 	int pid, status;
 	pid = waitpid(-1, &status, WNOHANG);
@@ -49,6 +80,10 @@ void sig_handler6(int signum) {
 	}
 }
 
+/*
+Handler for 31
+Flips the value of block
+*/
 void sig_handler7(int signum) {
 	if (block) {
 		block = 0;
@@ -57,6 +92,10 @@ void sig_handler7(int signum) {
 	}
 }
 
+/*
+Handler for 12
+Resets SIGTERM's handler to the default
+*/
 void sig_handler8(int signum) {
 	struct sigaction sigact;
 
@@ -65,6 +104,10 @@ void sig_handler8(int signum) {
 	sigaction(SIGTERM, &sigact, NULL);
 }
 
+/*
+Handler for SIGCHLD
+Suspends current process until a child has terminated, then prints the exit status of said child.
+*/
 void sig_handler9(int signum) {
 	int status;
 	waitpid(-1, &status, 0);
