@@ -107,7 +107,7 @@ line is a workaround.
     Use the PID and LWP to identify different threads or processes.
 
  3. From the `ps` output, how many (unique) threads are running with each
-    proces and why?  Use the PID and LWP to identify different threads or
+    process and why?  Use the PID and LWP to identify different threads or
     processes.
 
  4. Enter `Ctrl`+`c` on the pane in which `nc` was first executed to interrupt
@@ -148,7 +148,8 @@ printf("before accept()\n"); fflush(stdout);
 printf("after accept()\n"); fflush(stdout);              
 ```
 
-Open `sbuf.c`, and put similar `printf()` statements around the following lines:
+Open `sbuf.c` (in the `../code` directory), and put similar `printf()` statements
+around the following lines:
  - `sem_wait(&sp->slots);`
  - `sem_post(&sp->items);`
  - `sem_wait(&sp->items);`
