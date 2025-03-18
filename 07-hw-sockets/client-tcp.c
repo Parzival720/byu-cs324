@@ -167,71 +167,40 @@ int main(int argc, char *argv[]) {
 
 
 	/* SECTION C - interact with server; send, receive, print messages */
-	
-	unsigned char buf[4096];
-	int tot_bytes_read = 0;
-	int bytes_to_read = 512;
-	int nread = 0;
-	while ((nread = read(STDIN_FILENO, buf + tot_bytes_read, bytes_to_read)) != 0) {
-		tot_bytes_read += nread;
-	}
-	// printf("Total bytes read: %d\n", tot_bytes_read);
-	
-	buf[tot_bytes_read] = '\0';
 
-	int tot_bytes_sent = 0;
-	while (tot_bytes_sent < tot_bytes_read) {
-		ssize_t nwritten = send(sfd, buf + tot_bytes_sent, 50, 0);
+	// Send remaining command-line arguments as separate
+	// datagrams, and read responses from server.
+	for (int j = hostindex + 2; j < argc; j++) {
+		// buf will hold the bytes we read from the socket.
+		char buf[BUF_SIZE];
+
+		size_t len = strlen(argv[j]);
+
+		// Check for buffer overflow.
+		if (len > BUF_SIZE) {
+			fprintf(stderr,
+					"Ignoring long message in argument %d\n", j);
+			continue;
+		}
+
+		// Send bytes to remote socket using send().
+		ssize_t nwritten = send(sfd, argv[j], len, 0);
 		if (nwritten < 0) {
 			perror("send");
 			exit(EXIT_FAILURE);
 		}
-		tot_bytes_sent += nwritten;
-		// printf("Sent %ld bytes: %s\n", nwritten, buf + tot_bytes_sent);
+		printf("Sent %zd bytes: %s\n", len, argv[j]);
+
+		// Read bytes from remote socket using recv().
+		// ssize_t nread = recv(sfd, buf, BUF_SIZE, 0);
+		// buf[nread] = '\0';
+		// if (nread < 0) {
+		// 	perror("read");
+		// 	exit(EXIT_FAILURE);
+		// }
+		// printf("Received %zd bytes: %s\n", nread, buf);
+
 	}
-	// printf("Total bytes sent: %d\n", tot_bytes_sent);
-
-	unsigned char buf2[16384];
-	nread = 0;
-	tot_bytes_read = 0;
-	while ((nread = recv(sfd, buf2 + tot_bytes_read, 512, 0)) != 0) {
-		tot_bytes_read += nread;
-	}
-	write(STDOUT_FILENO, buf2, tot_bytes_read);
-
-	// // Send remaining command-line arguments as separate
-	// // datagrams, and read responses from server.
-	// for (int j = hostindex + 2; j < argc; j++) {
-	// 	// buf will hold the bytes we read from the socket.
-	// 	char buf[BUF_SIZE];
-
-	// 	size_t len = strlen(argv[j]);
-
-	// 	// Check for buffer overflow.
-	// 	if (len > BUF_SIZE) {
-	// 		fprintf(stderr,
-	// 				"Ignoring long message in argument %d\n", j);
-	// 		continue;
-	// 	}
-
-	// 	// Send bytes to remote socket using send().
-	// 	ssize_t nwritten = send(sfd, argv[j], len, 0);
-	// 	if (nwritten < 0) {
-	// 		perror("send");
-	// 		exit(EXIT_FAILURE);
-	// 	}
-	// 	printf("Sent %zd bytes: %s\n", len, argv[j]);
-
-	// 	// Read bytes from remote socket using recv().
-	// 	// ssize_t nread = recv(sfd, buf, BUF_SIZE, 0);
-	// 	// buf[nread] = '\0';
-	// 	// if (nread < 0) {
-	// 	// 	perror("read");
-	// 	// 	exit(EXIT_FAILURE);
-	// 	// }
-	// 	// printf("Received %zd bytes: %s\n", nread, buf);
-
-	// }
 
 	exit(EXIT_SUCCESS);
 }
