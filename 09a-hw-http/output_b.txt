@@ -1,0 +1,21 @@
+*   Trying 2620:10f:3007:a002:c3e3:869:d7f6:6a39:2025...
+* connect to 2620:10f:3007:a002:c3e3:869:d7f6:6a39 port 2025 failed: Connection refused
+*   Trying 10.52.0.66:2025...
+* Connected to arizona (10.52.0.66) port 2025 (#0)
+> GET /bar.txt HTTP/1.1
+> Host: arizona:2025
+> User-Agent: curl/7.81.0
+> Accept: */*
+> 
+* Mark bundle as not supporting multiuse
+* HTTP 1.0, assume close after body
+< HTTP/1.0 200 OK
+< Server: SimpleHTTP/0.6 Python/3.10.12
+< Date: Wed, 19 Mar 2025 03:07:36 GMT
+< Content-type: text/plain
+< Content-Length: 6
+< Last-Modified: Tue, 14 Jan 2025 04:14:49 GMT
+< 
+{ [6 bytes data]
+* Closing connection 0
+hello

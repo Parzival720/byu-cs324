@@ -1,0 +1,24 @@
+*   Trying 2620:10f:3007:a002:c3e3:869:d7f6:6a39:2025...
+* connect to 2620:10f:3007:a002:c3e3:869:d7f6:6a39 port 2025 failed: Connection refused
+*   Trying 10.52.0.66:2025...
+* Connected to arizona (10.52.0.66) port 2025 (#0)
+> POST /cgi-bin/myprog1?univ=byu&class=CS324&msg=hello%3Dworld%21 HTTP/1.1
+> Host: arizona:2025
+> User-Agent: curl/7.81.0
+> Accept: */*
+> Content-Length: 13
+> Content-Type: application/x-www-form-urlencoded
+> 
+} [13 bytes data]
+* Mark bundle as not supporting multiuse
+* HTTP 1.0, assume close after body
+< HTTP/1.0 200 Script output follows
+< Server: SimpleHTTP/0.6 Python/3.10.12
+< Date: Wed, 19 Mar 2025 04:54:49 GMT
+< Content-type: text/plain
+< Content-length: 89
+< 
+{ [6 bytes data]
+* transfer closed with 83 bytes remaining to read
+* Closing connection 0
+@Ð~ôe

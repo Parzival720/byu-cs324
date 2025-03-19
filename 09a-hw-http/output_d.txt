@@ -1,0 +1,34 @@
+*   Trying 2620:10f:3007:a002:c3e3:869:d7f6:6a39:2025...
+* connect to 2620:10f:3007:a002:c3e3:869:d7f6:6a39 port 2025 failed: Connection refused
+*   Trying 10.52.0.66:2025...
+* Connected to arizona (10.52.0.66) port 2025 (#0)
+> GET /does-not-exist HTTP/1.1
+> Host: arizona:2025
+> User-Agent: curl/7.81.0
+> Accept: */*
+> 
+* Mark bundle as not supporting multiuse
+* HTTP 1.0, assume close after body
+< HTTP/1.0 404 File not found
+< Server: SimpleHTTP/0.6 Python/3.10.12
+< Date: Wed, 19 Mar 2025 03:08:48 GMT
+< Connection: close
+< Content-Type: text/html;charset=utf-8
+< Content-Length: 469
+< 
+{ [469 bytes data]
+* Closing connection 0
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+        "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+        <title>Error response</title>
+    </head>
+    <body>
+        <h1>Error response</h1>
+        <p>Error code: 404</p>
+        <p>Message: File not found.</p>
+        <p>Error code explanation: HTTPStatus.NOT_FOUND - Nothing matches the given URI.</p>
+    </body>
+</html>
