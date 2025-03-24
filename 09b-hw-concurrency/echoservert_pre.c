@@ -80,7 +80,9 @@ int main(int argc, char *argv[]) {
 		// NOTE: addrlen needs to be initialized before every call to
 		// recvfrom().  See the man page for recvfrom().
 		socklen_t addr_len = sizeof(struct sockaddr_storage);
+		printf("before accept()\n"); fflush(stdout);
 		int connfd = accept(sfd, remote_addr, &addr_len);
+		printf("after accept()\n"); fflush(stdout);
 
 		parse_sockaddr(remote_addr, remote_ip, &remote_port);
 		printf("Connection from %s:%d\n",
