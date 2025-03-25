@@ -2,34 +2,59 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <pthread.h>
 
 #include "sockhelper.h"
+#include "sbuf.h"
 
 /* Recommended max object size */
 #define MAX_OBJECT_SIZE 102400
+#define NTHREADS  8
+#define SBUFSIZE  5
 
 static const char *user_agent_hdr = "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:97.0) Gecko/20100101 Firefox/97.0";
 
 int complete_request_received(char *);
 void parse_request(char *, char *, char *, char *, char *);
-int open_sfd(char **);
-void handle_client();
+// void *handle_client_thread(void *vargp);
+void *handle_clients(void *vargp);
+int open_sfd(char *[]);
+void handle_client(int);
 void test_parser();
 void print_bytes(unsigned char *, int);
+
+sbuf_t sbuf; /* Shared buffer of connected descriptors */
 
 int main(int argc, char *argv[])
 {
 	int sfd = open_sfd(argv);
+
+	sbuf_init(&sbuf, SBUFSIZE);
+	pthread_t tid;
+	for (int i = 0; i < NTHREADS; i++) {
+		pthread_create(&tid, NULL, handle_clients, NULL);
+	}
 	while (1) {
 
-		int temp_socket;
+		// int temp_socket;
 		struct sockaddr_storage remote_addr_ss;
 		struct sockaddr *remote_addr = (struct sockaddr *)&remote_addr_ss;
 		socklen_t addr_len = sizeof(struct sockaddr_storage);
-		temp_socket = accept(sfd, remote_addr, &addr_len);
+		// temp_socket = accept(sfd, remote_addr, &addr_len);
 		
-		handle_client(temp_socket);
+		// int *connfd = malloc(sizeof(int));
+		// *connfd = accept(sfd, remote_addr, &addr_len);
+	
+		// pthread_t tid;
+		// pthread_create(&tid, NULL, handle_client_thread, connfd);
+
+		int connfd = accept(sfd, remote_addr, &addr_len);
+
+		sbuf_insert(&sbuf, connfd);
 	}
 
 
@@ -65,18 +90,36 @@ void parse_request(char *request, char *method,
 		strcpy(port, "80");
 		end_of_thing = strstr(start_of_thing, "/");
 		strncpy(hostname, start_of_thing, end_of_thing - start_of_thing);
-		start_of_thing = end_of_thing + 1;
+		start_of_thing = end_of_thing;
 	} else {
 		strncpy(hostname, start_of_thing, end_of_thing - start_of_thing);
 		start_of_thing = end_of_thing + 1;
 
 		end_of_thing = strstr(start_of_thing, "/");
 		strncpy(port, start_of_thing, end_of_thing - start_of_thing);
-		start_of_thing = end_of_thing + 1;
+		start_of_thing = end_of_thing;
 	}
 
 	end_of_thing = strstr(start_of_thing, " ");
 	strncpy(path, start_of_thing, end_of_thing - start_of_thing);
+}
+
+void *handle_client_thread(void *vargp) {
+	int connfd = *((int *)vargp);
+	pthread_detach(pthread_self());
+	free(vargp);
+	handle_client(connfd);
+	close(connfd);
+	return NULL;
+}
+
+void *handle_clients(void *vargp) {
+	pthread_detach(pthread_self());
+	while (1) {
+		int connfd = sbuf_remove(&sbuf); /* Remove connfd from buffer */
+		handle_client(connfd);
+		close(connfd);
+	}
 }
 
 int open_sfd(char *argv[]) {
@@ -113,8 +156,9 @@ int open_sfd(char *argv[]) {
 	return sfd;
 }
 
-void handle_client(int socket) {
-	char buf[1024];
+void handle_client(int client_socket)
+{
+    char buf[1024];
 	memset(buf, '\0', 1024);
 	ssize_t totread = 0;
 	ssize_t nread = 0;
@@ -122,7 +166,7 @@ void handle_client(int socket) {
 	// printf("Handling client\n");
 	
 	while (1) {
-		nread = recv(socket, &buf[totread], 1024 - totread, 0);
+		nread = recv(client_socket, &buf[totread], 1024 - totread, 0);
 		if (nread < 0) {
 			perror("receiving message");
 			exit(EXIT_FAILURE);
@@ -157,7 +201,7 @@ void handle_client(int socket) {
 		printf("REQUEST INCOMPLETE\n");
 	}
 
-	close(socket);
+	// close(client_socket);
 
 	char modified_request[1024];
 	char new_hostname[256];
@@ -169,7 +213,86 @@ void handle_client(int socket) {
 	sprintf(modified_request, "%s %s HTTP/1.0\r\nHost: %s\r\n%s\r\n"
 		"Connection: close\r\nProxy-Connection: close\r\n\r\n", 
 		method, path, new_hostname, user_agent_hdr);
-	print_bytes((unsigned char *)modified_request, strlen(modified_request));
+	// print_bytes((unsigned char *)modified_request, strlen(modified_request));
+
+	struct addrinfo hints;
+	memset(&hints, 0, sizeof(struct addrinfo));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	struct addrinfo *result;
+	int s;
+	s = getaddrinfo(hostname,
+			port, &hints, &result);
+	if (s != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
+		exit(EXIT_FAILURE);
+	}
+
+
+	int server_socket;
+	int addr_fam;
+	socklen_t addr_len;
+
+	struct sockaddr_storage local_addr_ss;
+	struct sockaddr *local_addr = (struct sockaddr *)&local_addr_ss;
+	char local_ip[INET6_ADDRSTRLEN];
+	unsigned short local_port;
+
+	struct sockaddr_storage remote_addr_ss;
+	struct sockaddr *remote_addr = (struct sockaddr *)&remote_addr_ss;
+	char remote_ip[INET6_ADDRSTRLEN];
+	unsigned short remote_port;
+
+	server_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+	addr_fam = result->ai_family;
+	addr_len = result->ai_addrlen;
+	memcpy(remote_addr, result->ai_addr, sizeof(struct sockaddr_storage));
+
+	parse_sockaddr(remote_addr, remote_ip, &remote_port);
+	fprintf(stderr, "Connecting to %s:%d (addr family: %d)\n",
+				remote_ip, remote_port, addr_fam);
+	connect(server_socket, remote_addr, addr_len);
+
+	freeaddrinfo(result);
+
+	addr_len = sizeof(struct sockaddr_storage);
+	s = getsockname(server_socket, local_addr, &addr_len);
+	parse_sockaddr(local_addr, local_ip, &local_port);
+	fprintf(stderr, "Local socket info: %s:%d (addr family: %d)\n",
+			local_ip, local_port, addr_fam);
+
+	printf("Trying to send to new server socket \n");
+	ssize_t nwritten = send(server_socket, modified_request, strlen(modified_request), 0);
+	if (nwritten < 0) {
+		perror("send");
+		exit(EXIT_FAILURE);
+	}
+	printf("Sent %zd bytes: %s\n", strlen(modified_request), modified_request);
+
+	char server_response[16384];
+	nread = 0;
+	totread = 0;
+	while (1) {
+		nread = recv(server_socket, &server_response[totread], 16384 - totread, 0);
+		if (nread < 0) {
+			perror("receiving message");
+			exit(EXIT_FAILURE);
+		} 
+		else if (nread == 0) {
+			break;
+		}
+		totread += nread;
+		printf("Read: %ld bytes\n", nread);
+	}
+
+	server_response[totread] = '\0';
+	printf("Read %zd bytes: %s\n", totread, server_response);
+	// print_bytes((unsigned char *)server_response, totread);
+	close(server_socket);
+
+	send(client_socket, server_response, totread, 0);
+	close(client_socket);
 }
 
 void test_parser() {

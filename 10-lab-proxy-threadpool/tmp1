@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>IMAAL</title>
+    <meta name="viewport" content="width=device-width" />
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/png" href="images/imaal.png">
+    <script src="js/micro-templating.js"></script>
+    <script src="js/helper.js"></script>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="flex-container">
+            <img class="main-logo" src="images/imaal.png" alt="IMAAL logo" />
+            <h1 class="main-title">Internet Measurement and Anti-Abuse Laboratory</h1>
+        </div>
+
+        <div>
+            <p>This is the Internet Measurement and Anti-Abuse Laboratory (IMAAL) in the
+                <a href="https://cs.byu.edu/">Computer Science Department</a> at
+                <a href="https://www.byu.edu/">Brigham Young University</a>.
+                Lab research is directed under <a href="https://casey.byu.edu/">Dr. Casey Deccio</a>,
+                an assistant professor in the department.</p>
+            <p>As part of our research we are engaged in activities involving both passive and active Internet
+                measurements, with the goal of assessing and improving the Internet's health, efficiency, and
+                resiliency to attack and failure.</p>
+            <p class="abuse-header">
+                <strong>For questions or concerns read through <a href="#traffic">Anomalous Internet Traffic</a>
+                then see the <a href="#contact">Contact</a> section.</strong>
+            </p>
+        </div>
+    </div>
+
+    <div class="container" id="info">
+        <hr>
+        <div class="flex-container" style="align-items: flex-start;">
+            <div class="info">
+                <h2>Address Space</h2>
+                <p><strong>IPv4:</strong> 128.187.82.224/27</p>
+                <p><strong>IPv6:</strong> 2620:10f:3007:a050::/64</p>
+            </div>
+
+            <div class="info">
+                <h2>DNS Domains:</h2>
+                <p>dns-lab.org</p>
+                <p>internet-measurement.cs.byu.edu</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Will get populated by recent-pubs-template -->
+    <div class="container publications" id="recent-publications"></div>
+    <!-- Recent publications template -->
+    <script type="text/html" id="recent-pubs-template">
+        <hr>
+        <h2>Recent Publications</h2>
+        <% for (let i = 0; i < pubs.length; i++) { %>
+        <a href="<%= pubs[i].url || 'javascript:void(0)' %>" class="<%= pubs[i].url ? '' : 'non-link' %>">
+            <h3><%= pubs[i].title %></h3>
+            <p><%= pubs[i].subtitle %></p>
+        </a>
+        <% } %>
+    </script>
+
+    <!-- Will get populated by lab-members-template -->
+    <div class="wide-container" id="lab-members"></div>
+    <!-- Lab members template -->
+    <script type="text/html" id="lab-members-template">
+        <hr>
+        <h2 style="text-align: center;">Lab Members</h2>
+        <div class="flex-container" id="member-container" style="align-items: flex-start;">
+            <% for (let i = 0; i < members.length; i++) { %>
+            <div class="member">
+                <img src="<%= members[i].image_url %>" alt="<%= members[i].image_url %>">
+                <h3><%= members[i].name %></h3>
+            </div>
+            <% } %>
+        </div>
+    </script>
+
+    <div class="container" id="traffic">
+        <hr>
+        <h2>Anomalous Internet Traffic</h2>
+        <p>If you've observed anomalous Internet traffic associated with our address space, we list below more
+            information on research we're conducting, what you might expect to see, and how to opt out.</p>
+
+        <ul class="traffic-list">
+            <li>
+                <h3>About 30 TCP SYN packets in short succession, several times per day, per IP address
+                </h3>
+                <p>We are conducting a measurement study that uses SYN packets (and their corresponding SYNACKs) to 1) identify OS and 2) determine whether or not SYN cookies are in use.  We believe that our findings, in aggregate, will help us get a picture of security and stability of the Internet, as indicated by servers experiencing high volume or SYN floods over time.</p>
+            </li>
+            <li>
+                <h3>DNS queries for <strong>dns-lab.org</strong> either a) destined for your resolver, appearing to come
+                    from IP address space within your resolver's autonomous system (AS) and/or b) leaving your resolver
+                </h3>
+                <p>We are conducting an experiment to learn whether networks are susceptible to reverse spoofing, the
+                    idea that internal address space is reachable through by spoofing that IP address as the source in
+                    packets. We are using DNS queries to known resolvers as a means to test this.</p>
+            </li>
+            <li>
+                <h3>SMTP connections attempting to deliver mail to postmaster@&lt;your_domain&gt; with an envelope
+                    sender having a suffix in the <strong>spf-test.dns-lab.org</strong> zone</h3>
+                <p>We are conducting experiments related to validation of SPF and DMARC, as part of our research on SMTP
+                    anti-abuse. The suffix for any sender email corresponds to a domain with a specific configuration
+                    testing a given characteristic of SPF and/or DMARC. We observe the traffic at our authoritative DNS
+                    servers to learn more about the state of SPF and DMARC deployment.</p>
+                <p>We know that people hate spam, so we have tried several ways to reduce, if not eliminate, the amount
+                    of unsolicited email reaching someone's
+                    inbox as part of our experiment. First, with one methodology we employ, we simply disconnect from
+                    the SMTP server after DATA is issued (but before any content is sent). We have and are using that
+                    methodology. However, we have learned that many servers begin SPF validation by the point at which
+                    we disconnect, but some servers (e.g., gmail) won't validate unless they get some content. Of those,
+                    many (e.g., gmail) would immediately dismiss a blank email message, even though they still validate.
+                    So we additionally using this methodology. We recognize that there are some servers that don't error
+                    out, but we make note of those to not hit them twice---to minimize annoyance and perceived abuse. We
+                    also use an invalid SPF and strict DMARC reject policy, so servers adhering to SPF and DMARC should
+                    reject our message, but we understand that not all are validating.</p>
+            </li>
+            <li>
+                <h3>DNS queries to DNS servers for DNS records within the
+                    <strong>resolver-measurement.dns-lab.org</strong> zone</h3>
+                <p>We are conducting experiments to characterize DNS server behavior, particularly with respect to open
+                    resolver behavior.
+                    The custom queries we issue to a resolver supporting recursive DNS queries from our address space
+                    force it to in turn issue queries to the servers authoritative for <strong>dns-lab.org</strong>,
+                    which are under our control.</p>
+                <p>We are also conducting experiments related to DNS-over-TLS, so you might see connection attempts to
+                    port 853, which is associated with DNS-over-TLS.</p>
+            </li>
+            <!-- <li>
+                <h3>High rates of DNS queries to authoritative servers</h3>
+                <p>We are currently conducting some experiments to survey the deployment of DNS response rate limiting
+                    at authoritative servers.
+                    If you see abnormally high rates of DNS requests coming from our address space, that is likely
+                    associated with this experiment.
+                    We understand that this activity appears anomalous and perhaps even malicious.
+                    We enumerate below the characteristics of the DNS queries associated with our experiments, including
+                    measures that we have taken to mitigate any unintended negative impact to those on the receiving end
+                    of our measurements.</p>
+                <ul>
+                    <li>For every authoritative server associated with a domain (e.g., example.com), we issue a burst of
+                        500 queries in a single second for any A records associated with that domain (e.g.,
+                        example.com/A).</li>
+                    <li>Queries deliberately use type A (IPv4 address), and they do not use EDNS0---both actions in an
+                        effort to keep the responses relatively small (e.g., compare to type ANY with EDNS0, which
+                        combination is typically used for reflection-based DDoS attacks).
+                    <li>These queries should not persist beyond the burst of 500 (but see next bullet point).</li>
+                    <li>If an authoritative server hosts more than one domain in our data set, they might see multiple
+                        bursts of queries---one for each domain---but we have made efforts to keep them from being made
+                        concurrently.</li>
+                </ul>
+                <p></p>
+            </li> -->
+
+            <li>
+                <h3>DNS queries to authoritative servers for DNS records that don't exist</h3>
+                <p>We are conducting experiments to understand the handling of negative DNS responses by DNS
+                    authoritative servers, which requires us to issue queries to servers for names or types that don't
+                    exist within the DNS zone for which the servers are authoritative.</p>
+            </li>
+
+            <li>
+                <h3>DNS queries to resolvers for DNS records within the <strong>resolver-select.dns-lab.org</strong>
+                    zone</h3>
+                <p>We are conducting experiments to characterize resolver behavior with respect to DNS authoritative
+                    server selection.
+                    The custom queries we issue to the resolver force it to in turn issue queries to the servers
+                    authoritative for <strong>resolver-select.dns-lab.org</strong>, which are specially configured and
+                    under our control.</p>
+            </li>
+
+            <li>
+                <h3>DNS queries to resolvers for DNS records for non-existent domain names within select domains</h3>
+                <p>We are conducting experiments to characterize resolver behavior with respect to DNS authoritative
+                    server selection and proximity to resolvers.
+                    Issuing queries for DNS records that don't exist help us to better understand that behavior.</p>
+            </li>
+        </ul>
+
+    </div>
+
+
+    <div class="container" id="contact">
+        <hr>
+        <h2>Contact</h2>
+        <p>For questions, comments, and additional information, please send email to
+            <a href="mailto:imaal@byu.edu">imaal@byu.edu</a>.</p>
+        <p>To opt out of any or all of the listed above, please send email to
+            <a href="mailto:imaal-abuse@byu.edu">imaal-abuse@byu.edu</a>, and include the IP address space
+            that you would like to be exempted.</p>
+    </div>
+
+    <div class="footer">
+        <hr class="nostyle">
+        <p>Copyright &copy; 2019 Casey Deccio</p>
+    </div>
+</body>
+
+</html>
