@@ -95,7 +95,9 @@ int main(int argc, char **argv)
 	struct epoll_event events[MAXEVENTS];
 	while (1) {
 		// wait for event to happen (-1 == no timeout)
+		printf("before epoll_wait()\n"); fflush(stdout);
 		int n = epoll_wait(efd, events, MAXEVENTS, -1);
+		printf("after epoll_wait()\n"); fflush(stdout);
 
 		for (int i = 0; i < n; i++) {
 			// grab the data structure from the event, and cast it
@@ -144,13 +146,12 @@ int main(int argc, char **argv)
 					printf("Connection from %s:%d\n",
 							remote_ip, remote_port);
 
-					/* UNCOMMENT FOR NONBLOCKING
 					// set client file descriptor nonblocking
 					if (fcntl(connfd, F_SETFL, fcntl(connfd, F_GETFL, 0) | O_NONBLOCK) < 0) {
 						fprintf(stderr, "error setting socket option\n");
 						exit(1);
 					}
-					*/
+					
 
 					// allocate memory for a new struct
 					// client_info, and populate it with
@@ -166,7 +167,7 @@ int main(int argc, char **argv)
 					// for incoming events using
 					// edge-triggered monitoring
 					event.data.ptr = new_client;
-					event.events = EPOLLIN;
+					event.events = EPOLLIN | EPOLLET;
 					if (epoll_ctl(efd, EPOLL_CTL_ADD, connfd, &event) < 0) {
 						fprintf(stderr, "error adding event\n");
 						exit(1);
@@ -176,9 +177,7 @@ int main(int argc, char **argv)
 				// read from socket until (1) the remote side
 				// has closed the connection or (2) there is no
 				// data left to be read.
-				/* UNCOMMENT FOR NONBLOCKING
 				while (1) {
-				*/
 					char buf[MAXLINE];
 					int len = recv(active_client->fd, buf, MAXLINE, 0);
 					if (len == 0) { // EOF received
@@ -186,31 +185,25 @@ int main(int argc, char **argv)
 						// unregister the fd from the efd
 						close(active_client->fd);
 						free(active_client);
-						/* UNCOMMENT FOR NONBLOCKING
 						break;
-						*/
 					} else if (len < 0) {
-						/* UNCOMMENT FOR NONBLOCKING
 						if (errno == EWOULDBLOCK ||
 								errno == EAGAIN) {
 							// no more data to be read
 						} else {
-						*/
+						
 							perror("client recv");
 							close(active_client->fd);
 							free(active_client);
-						/* UNCOMMENT FOR NONBLOCKING
 						}
 						break;
-						*/
 					} else {
 						active_client->total_length += len;
 						printf("Received %d bytes (total: %d)\n", len, active_client->total_length);
 						send(active_client->fd, buf, len, 0);
 					}
-				/* UNCOMMENT FOR NONBLOCKING
 				}
-				*/
+				
 			}
 		}
 	}
