@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-
+	free(listener);
 	printf("%s\n", user_agent_hdr);
 	return 0;
 }
@@ -270,8 +270,7 @@ void handle_client(int efd, struct request_info *request) {
 		while (1) {
 			int len = recv(request->clientToProxy, &request->readRequestBuffer[request->bytesReadClient], MAXLINE - request->bytesReadClient, 0);
 			if (len < 0) {
-				if (errno == EWOULDBLOCK ||
-						errno == EAGAIN) {
+				if (errno == EWOULDBLOCK || errno == EAGAIN) {
 					// no more data to be read
 					return;
 				} else {
@@ -279,13 +278,16 @@ void handle_client(int efd, struct request_info *request) {
 					perror("client recv");
 					close(request->clientToProxy);
 					free(request);
+					return;
 				}
 				break;
 			} else {
 				request->bytesReadClient += len;
 				printf("Received %d bytes (total: %d)\n", len, request->bytesReadClient);
 				if (strstr(request->readRequestBuffer, "\r\n\r\n") != NULL) {
-					// printf("Found carriage return newline twice\n");
+					// char *pos = strstr(request->readRequestBuffer, "\r\n\r\n");
+					// printf("Found carriage return newline twice at position %td\n", pos - request->readRequestBuffer);
+					// printf("%s\n", request->readRequestBuffer);
 					// printf("%s\n", request->readBuffer);
 					// printf("Total bytes read: %ld\n", totread);
 					break;
@@ -399,7 +401,7 @@ void handle_client(int efd, struct request_info *request) {
 	} else if (request->requestState == SEND_REQUEST) {
 		//printf("Trying to send to new server socket \n");
 		while(1) {
-			int nwritten = send(request->proxyToServer, &request->writeRequestBuffer[request->bytesWrittenServer], request->bytesToWriteServer, 0);
+			int nwritten = send(request->proxyToServer, &request->writeRequestBuffer[request->bytesWrittenServer], request->bytesToWriteServer - request->bytesWrittenServer, 0);
 			if (nwritten < 0) {
 				if (errno == EWOULDBLOCK ||
 						errno == EAGAIN) {
@@ -414,7 +416,7 @@ void handle_client(int efd, struct request_info *request) {
 				break;
 			}
 			request->bytesWrittenServer += nwritten;
-			printf("Sent %d bytes: %s\n", request->bytesWrittenServer, request->writeRequestBuffer);
+			printf("Sent %d/%d bytes: %s\n", request->bytesWrittenServer, request->bytesToWriteServer, request->writeRequestBuffer);
 			if (request->bytesWrittenServer == request->bytesToWriteServer) {
 				break;
 			}
@@ -476,7 +478,7 @@ void handle_client(int efd, struct request_info *request) {
 		request->requestState = SEND_RESPONSE;
 	} else if (request->requestState == SEND_RESPONSE) {
 		while(1) {
-			int nwritten = send(request->clientToProxy, &request->readResponseBuffer[request->bytesWrittenClient], request->bytesReadServer, 0);
+			int nwritten = send(request->clientToProxy, &request->readResponseBuffer[request->bytesWrittenClient], request->bytesReadServer - request->bytesWrittenClient, 0);
 			if (nwritten < 0) {
 				if (errno == EWOULDBLOCK ||
 						errno == EAGAIN) {
@@ -490,14 +492,14 @@ void handle_client(int efd, struct request_info *request) {
 				break;
 			}
 			request->bytesWrittenClient += nwritten;
-			printf("Sent %d bytes: %s\n", request->bytesWrittenClient, request->readResponseBuffer);
+			printf("Sent %d/%d  bytes: %s\n", request->bytesWrittenClient, request->bytesReadServer, request->readResponseBuffer);
 			if (request->bytesWrittenClient == request->bytesReadServer) {
 				break;
 			}
 		}
 
-		free(request);
 		close(request->clientToProxy);
+		free(request);
 	}
 
 }
